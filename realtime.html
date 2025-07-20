@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple WebSocket Chat</title>
+  <style>
+    body { font-family: Arial; padding: 1rem; max-width: 600px; margin: auto; }
+    #login, #chat { margin-top: 2rem; }
+    #messages { border: 1px solid #ccc; height: 300px; overflow-y: scroll; padding: 0.5rem; }
+    .message { margin-bottom: 0.5rem; }
+    .info { color: gray; font-style: italic; }
+    #messageInput { width: 80%; padding: 0.5rem; }
+    #sendBtn { padding: 0.5rem; }
+  </style>
+</head>
+<body>
+
+<h1>Real-time Chat</h1>
+
+<div id="login">
+  <input id="username" placeholder="Enter username" />
+  <button id="loginBtn">Login</button>
+</div>
+
+<div id="chat" style="display:none;">
+  <div id="messages"></div>
+  <input id="messageInput" placeholder="Type message..." autocomplete="off" />
+  <button id="sendBtn">Send</button>
+</div>
+
+<script>
+  let ws;
+  const loginDiv = document.getElementById('login');
+  const chatDiv = document.getElementById('chat');
+  const usernameInput = document.getElementById('username');
+  const loginBtn = document.getElementById('loginBtn');
+  const messagesDiv = document.getElementById('messages');
+  const messageInput = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  function addMessage(text, className='message') {
+    const div = document.createElement('div');
+    div.className = className;
+    div.textContent = text;
+    messagesDiv.appendChild(div);
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+  }
+
+  loginBtn.onclick = () => {
+    const username = usernameInput.value.trim();
+    if (!username) {
+      alert('Enter username');
+      return;
+    }
+
+    ws = new WebSocket('ws://localhost:8080');
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'login', username }));
+      loginDiv.style.display = 'none';
+      chatDiv.style.display = 'block';
+      addMessage('Connected to chat server.', 'info');
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'message') {
+        addMessage(`${data.username}: ${data.text}`);
+      } else if (data.type === 'info') {
+        addMessage(data.message, 'info');
+      }
+    };
+
+    ws.onclose = () => addMessage('Disconnected from server.', 'info');
+    ws.onerror = () => addMessage('Connection error.', 'info');
+  };
+
+  sendBtn.onclick = () => {
+    const text = messageInput.value.trim();
+    if (!text) return;
+    ws.send(JSON.stringify({ type: 'message', text }));
+    messageInput.value = '';
+  };
+
+  messageInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+</script>
+
+</body>
+</html>

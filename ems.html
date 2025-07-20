@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee CRUD - Simple</title>
+</head>
+<body>
+
+<h2>Admin Login</h2>
+<div id="loginDiv">
+  <input id="user" placeholder="Username"><br>
+  <input id="pass" type="password" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
+</div>
+
+<div id="crudDiv" style="display:none;">
+  <h2>Employee Manager</h2>
+  <input id="empName" placeholder="Name"><br>
+  <input id="empRole" placeholder="Role"><br>
+  <input id="empSalary" type="number" placeholder="Salary"><br>
+  <button onclick="addEmp()">Add</button><br><br>
+
+  <table border="1" id="empTable">
+    <tr><th>Name</th><th>Role</th><th>Salary</th><th>Delete</th></tr>
+  </table>
+
+  <br><button onclick="logout()">Logout</button>
+</div>
+
+<script>
+  let empList = JSON.parse(localStorage.getItem("empList") || "[]");
+
+  function login() {
+    let u = document.getElementById("user").value;
+    let p = document.getElementById("pass").value;
+    if (u === "admin" && p === "admin123") {
+      document.getElementById("loginDiv").style.display = "none";
+      document.getElementById("crudDiv").style.display = "block";
+      showTable();
+    } else {
+      alert("Wrong login");
+    }
+  }
+
+  function logout() {
+    document.getElementById("loginDiv").style.display = "block";
+    document.getElementById("crudDiv").style.display = "none";
+  }
+
+  function addEmp() {
+    let name = document.getElementById("empName").value;
+    let role = document.getElementById("empRole").value;
+    let salary = document.getElementById("empSalary").value;
+    if (!name || !role || !salary) return alert("Fill all fields");
+
+    empList.push({ name, role, salary });
+    localStorage.setItem("empList", JSON.stringify(empList));
+    document.getElementById("empName").value = "";
+    document.getElementById("empRole").value = "";
+    document.getElementById("empSalary").value = "";
+    showTable();
+  }
+
+  function deleteEmp(i) {
+    empList.splice(i, 1);
+    localStorage.setItem("empList", JSON.stringify(empList));
+    showTable();
+  }
+
+  function showTable() {
+    let tbl = document.getElementById("empTable");
+    tbl.innerHTML = "<tr><th>Name</th><th>Role</th><th>Salary</th><th>Delete</th></tr>";
+    empList.forEach((e, i) => {
+      tbl.innerHTML += `<tr>
+        <td>${e.name}</td>
+        <td>${e.role}</td>
+        <td>${e.salary}</td>
+        <td><button onclick="deleteEmp(${i})">X</button></td>
+      </tr>`;
+    });
+  }
+</script>
+
+</body>
+</html>

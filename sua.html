@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Auth - Udit</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f0f0f0; }
+    .box { max-width: 300px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+    input, button { width: 90%; padding: 10px; margin: 8px 0; }
+    #dashboard { display: none; }
+  </style>
+</head>
+<body>
+
+<div class="box" id="authBox">
+  <h2 id="title">Login</h2>
+  <input type="text" id="user" placeholder="Username" />
+  <input type="password" id="pass" placeholder="Password" />
+  <button onclick="auth()">Login</button>
+  <p><a href="#" onclick="toggle()">Switch to <span id="mode">Register</span></a></p>
+</div>
+
+<div class="box" id="dashboard">
+  <h2>Welcome <span id="username"></span> ✅</h2>
+  <p>You are logged in!</p>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<script>
+  let isLogin = true;
+
+  function toggle() {
+    isLogin = !isLogin;
+    document.getElementById("title").innerText = isLogin ? "Login" : "Register";
+    document.querySelector("button").innerText = isLogin ? "Login" : "Register";
+    document.getElementById("mode").innerText = isLogin ? "Register" : "Login";
+  }
+
+  function auth() {
+    let u = document.getElementById("user").value;
+    let p = document.getElementById("pass").value;
+    let users = JSON.parse(localStorage.getItem("users") || "{}");
+
+    if (isLogin) {
+      if (users[u] && users[u] === p) {
+        localStorage.setItem("loggedIn", u);
+        showDashboard(u);
+      } else {
+        alert("Wrong login!");
+      }
+    } else {
+      if (users[u]) return alert("User exists!");
+      users[u] = p;
+      localStorage.setItem("users", JSON.stringify(users));
+      alert("Registered! Now login.");
+      toggle();
+    }
+  }
+
+  function showDashboard(user) {
+    document.getElementById("authBox").style.display = "none";
+    document.getElementById("dashboard").style.display = "block";
+    document.getElementById("username").innerText = user;
+  }
+
+  function logout() {
+    localStorage.removeItem("loggedIn");
+    document.getElementById("authBox").style.display = "block";
+    document.getElementById("dashboard").style.display = "none";
+  }
+
+  // Auto login if session found
+  let session = localStorage.getItem("loggedIn");
+  if (session) showDashboard(session);
+</script>
+
+</body>
+</html>

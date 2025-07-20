@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simple Social Media</title>
+  <style>
+    body {
+      font-family: Arial;
+      max-width: 600px;
+      margin: auto;
+      padding: 1rem;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    #profile-section, #post-section, #feed-section {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 5px;
+      box-shadow: 0 0 5px #ccc;
+    }
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      margin-bottom: 0.7rem;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 1rem;
+      resize: vertical;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    .post {
+      border-bottom: 1px solid #ddd;
+      padding: 0.5rem 0;
+    }
+    .post img {
+      max-width: 100%;
+      border-radius: 5px;
+      margin-top: 0.5rem;
+    }
+    .actions {
+      margin-top: 0.5rem;
+    }
+    .actions button {
+      background: #eee;
+      color: #333;
+      margin-right: 0.5rem;
+      font-weight: bold;
+    }
+    .comments {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .comment {
+      margin-bottom: 0.3rem;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.2rem;
+    }
+    .comment-input {
+      margin-top: 0.5rem;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Simple Social Media</h1>
+
+  <section id="profile-section">
+    <h2>Create Profile</h2>
+    <label for="username">Username:</label>
+    <input type="text" id="username" placeholder="Your username" />
+    <button id="saveProfileBtn">Save Profile</button>
+    <p id="profileStatus"></p>
+  </section>
+
+  <section id="post-section" style="display:none;">
+    <h2>Create Post</h2>
+    <textarea id="postText" rows="3" placeholder="What's on your mind?"></textarea>
+    <label for="postImage">Upload Image (optional):</label>
+    <input type="file" id="postImage" accept="image/*" />
+    <br /><br />
+    <button id="postBtn" disabled>Post</button>
+  </section>
+
+  <section id="feed-section" style="display:none;">
+    <h2>Feed</h2>
+    <div id="posts"></div>
+  </section>
+
+<script>
+  const usernameInput = document.getElementById('username');
+  const saveProfileBtn = document.getElementById('saveProfileBtn');
+  const profileStatus = document.getElementById('profileStatus');
+
+  const postSection = document.getElementById('post-section');
+  const postText = document.getElementById('postText');
+  const postImage = document.getElementById('postImage');
+  const postBtn = document.getElementById('postBtn');
+
+  const feedSection = document.getElementById('feed-section');
+  const postsDiv = document.getElementById('posts');
+
+  // Load profile from localStorage
+  let profile = localStorage.getItem('profile');
+  if (profile) {
+    profile = JSON.parse(profile);
+    usernameInput.value = profile.username;
+    profileStatus.textContent = `Logged in as: ${profile.username}`;
+    usernameInput.disabled = true;
+    saveProfileBtn.style.display = 'none';
+    postSection.style.display = 'block';
+    feedSection.style.display = 'block';
+    loadPosts();
+  }
+
+  saveProfileBtn.onclick = () => {
+    const username = usernameInput.value.trim();
+    if (!username) {
+      alert('Please enter a username');
+      return;
+    }
+    profile = { username };
+    localStorage.setItem('profile', JSON.stringify(profile));
+    profileStatus.textContent = `Logged in as: ${profile.username}`;
+    usernameInput.disabled = true;
+    saveProfileBtn.style.display = 'none';
+    postSection.style.display = 'block';
+    feedSection.style.display = 'block';
+    loadPosts();
+  };
+
+  // Enable post button only if text or image
+  function checkPostButton() {
+    if (postText.value.trim() || postImage.files.length > 0) {
+      postBtn.disabled = false;
+    } else {
+      postBtn.disabled = true;
+    }
+  }
+  postText.addEventListener('input', checkPostButton);
+  postImage.addEventListener('change', checkPostButton);
+
+  // Posts storage
+  function getPosts() {
+    const posts = localStorage.getItem('posts');
+    return posts ? JSON.parse(posts) : [];
+  }
+
+  function savePosts(posts) {
+    localStorage.setItem('posts', JSON.stringify(posts));
+  }
+
+  // Create post object and save
+  postBtn.onclick = () => {
+    const text = postText.value.trim();
+    if (!text && postImage.files.length === 0) {
+      alert('Add text or image to post.');
+      return;
+    }
+
+    if (postImage.files.length > 0) {
+      const file = postImage.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        addPost(text, reader.result);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      addPost(text, null);
+    }
+  };
+
+  function addPost(text, image) {
+    let posts = getPosts();
+    posts.unshift({
+      id: Date.now(),
+      username: profile.username,
+      text,
+      image,
+      likes: 0,
+      comments: []
+    });
+    savePosts(posts);
+    renderPosts();
+    postText.value = '';
+    postImage.value = '';
+    postBtn.disabled = true;
+  }
+
+  // Render posts
+  function renderPosts() {
+    postsDiv.innerHTML = '';
+    const posts = getPosts();
+    posts.forEach(post => {
+      const postEl = document.createElement('div');
+      postEl.className = 'post';
+
+      postEl.innerHTML = `
+        <strong>${post.username}</strong><br/>
+        <p>${post.text.replace(/\n/g, '<br/>')}</p>
+        ${post.image ? `<img src="${post.image}" alt="Post image" />` : ''}
+        <div class="actions">
+          <button data-id="${post.id}" class="likeBtn">👍 ${post.likes}</button>
+          <button data-id="${post.id}" class="commentToggleBtn">💬 ${post.comments.length}</button>
+        </div>
+        <div class="comments" id="comments-${post.id}" style="display:none;">
+          ${post.comments.map(c => `<div class="comment"><strong>${c.username}:</strong> ${c.text}</div>`).join('')}
+          <div class="comment-input">
+            <input type="text" placeholder="Write a comment" data-postid="${post.id}" class="commentInput"/>
+            <button data-postid="${post.id}" class="commentSubmitBtn">Post</button>
+          </div>
+        </div>
+      `;
+      postsDiv.appendChild(postEl);
+    });
+
+    // Add event listeners to like and comment buttons
+    document.querySelectorAll('.likeBtn').forEach(btn => {
+      btn.onclick = () => {
+        const id = Number(btn.dataset.id);
+        likePost(id);
+      };
+    });
+    document.querySelectorAll('.commentToggleBtn').forEach(btn => {
+      btn.onclick = () => {
+        const id = Number(btn.dataset.id);
+        toggleComments(id);
+      };
+    });
+    document.querySelectorAll('.commentSubmitBtn').forEach(btn => {
+      btn.onclick = () => {
+        const id = Number(btn.dataset.postid);
+        const input = document.querySelector(`.commentInput[data-postid="${id}"]`);
+        const text = input.value.trim();
+        if (!text) return alert('Comment cannot be empty');
+        addComment(id, text);
+        input.value = '';
+      };
+    });
+  }
+
+  function likePost(id) {
+    let posts = getPosts();
+    const post = posts.find(p => p.id === id);
+    if (post) {
+      post.likes++;
+      savePosts(posts);
+      renderPosts();
+    }
+  }
+
+  function toggleComments(id) {
+    const commentsDiv = document.getElementById(`comments-${id}`);
+    if (commentsDiv.style.display === 'none') {
+      commentsDiv.style.display = 'block';
+    } else {
+      commentsDiv.style.display = 'none';
+    }
+  }
+
+  function addComment(postId, text) {
+    let posts = getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      post.comments.push({ username: profile.username, text });
+      savePosts(posts);
+      renderPosts();
+      toggleComments(postId); // close comments after posting
+    }
+  }
+
+  function loadPosts() {
+    renderPosts();
+  }
+</script>
+
+</body>
+</html>
